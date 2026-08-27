@@ -1,2 +1,0 @@
-# Brid-Project
-brid project
