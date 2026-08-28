@@ -112,13 +112,11 @@ def build_dataset(uploaded_files) -> tuple[pd.DataFrame, list[dict], bool]:
 
 
 # ---------------------------------------------------------------------------
-# Sidebar — upload + filters
+# Sidebar — upload
 # ---------------------------------------------------------------------------
 st.sidebar.title("🦉 Bird Dashboard")
 st.sidebar.markdown(
-    "Upload your bird-monitoring workbook(s) below. If nothing is uploaded, "
-    "the bundled **Forest + Grassland 2018 demo dataset** is shown so you "
-    "can explore the dashboard right away."
+    "Upload your bird-monitoring workbook(s) below to generate the dashboard."
 )
 
 uploaded_files = st.sidebar.file_uploader(
@@ -130,8 +128,37 @@ uploaded_files = st.sidebar.file_uploader(
          "Grassland file, or any similarly-structured survey workbook.",
 )
 
+if "use_demo_data" not in st.session_state:
+    st.session_state.use_demo_data = False
+
+st.sidebar.caption("Don't have a file handy?")
+if st.sidebar.button("Load demo dataset instead"):
+    st.session_state.use_demo_data = True
+
+# ---------------------------------------------------------------------------
+# Landing page — shown until the user uploads a file (or opts into the demo)
+# ---------------------------------------------------------------------------
+if not uploaded_files and not st.session_state.use_demo_data:
+    st.title("🦉 Bird Species Observation Analysis")
+    st.markdown(
+        "### Upload a file to generate your dashboard\n"
+        "Use the **sidebar** to upload one or two bird-monitoring Excel "
+        "workbooks (e.g. Forest and/or Grassland survey data). Each "
+        "workbook can contain multiple sheets — they'll be combined and "
+        "cleaned automatically, and the dashboard will build itself from "
+        "whatever you upload."
+    )
+    st.info(
+        "⬅️ Upload an `.xlsx` file in the sidebar to get started, or click "
+        "**\"Load demo dataset instead\"** to explore a sample Forest + "
+        "Grassland (2018) dataset."
+    )
+    st.stop()
+
 with st.spinner("Cleaning data..."):
-    df, cleaning_summaries, used_demo = build_dataset(uploaded_files)
+    df, cleaning_summaries, used_demo = build_dataset(
+        uploaded_files if uploaded_files else None
+    )
 
 if df.empty:
     st.error("No usable data was found in the uploaded file(s). Please check "
@@ -140,7 +167,7 @@ if df.empty:
     st.stop()
 
 if used_demo:
-    st.sidebar.info("Showing bundled demo data (Forest + Grassland, 2018).")
+    st.sidebar.info("Showing demo data (Forest + Grassland, 2018).")
 else:
     st.sidebar.success(f"Loaded {len(uploaded_files)} file(s), "
                         f"{len(df):,} cleaned observations.")
