@@ -18,11 +18,21 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+from pathlib import Path
+
 from utils.data_processing import (
     load_and_clean,
     combine_datasets,
     infer_habitat_from_filename,
 )
+
+# Resolve paths relative to THIS FILE's location, not the process's current
+# working directory — hosting platforms (Streamlit Cloud, Docker, etc.) don't
+# always launch the app with cwd set to this folder, which breaks plain
+# relative paths like "data/raw/....xlsx".
+APP_DIR = Path(__file__).resolve().parent
+DEMO_FOREST_PATH = APP_DIR / "data" / "raw" / "Bird_Monitoring_Data_FOREST.XLSX"
+DEMO_GRASSLAND_PATH = APP_DIR / "data" / "raw" / "Bird_Monitoring_Data_GRASSLAND.XLSX"
 
 # ---------------------------------------------------------------------------
 # Page config & light styling
@@ -68,8 +78,15 @@ def _clean_uploaded_file(file_bytes: bytes, filename: str) -> pd.DataFrame:
 
 @st.cache_data(show_spinner=False)
 def _load_demo_data() -> pd.DataFrame:
-    forest = load_and_clean("data/raw/Bird_Monitoring_Data_FOREST.XLSX", habitat_hint="Forest")
-    grassland = load_and_clean("data/raw/Bird_Monitoring_Data_GRASSLAND.XLSX", habitat_hint="Grassland")
+    if not DEMO_FOREST_PATH.is_file() or not DEMO_GRASSLAND_PATH.is_file():
+        st.error(
+            "Demo data files are missing from the deployment "
+            f"(expected at `{DEMO_FOREST_PATH}` and `{DEMO_GRASSLAND_PATH}`). "
+            "Please upload a workbook using the sidebar to continue."
+        )
+        return pd.DataFrame()
+    forest = load_and_clean(DEMO_FOREST_PATH, habitat_hint="Forest")
+    grassland = load_and_clean(DEMO_GRASSLAND_PATH, habitat_hint="Grassland")
     return combine_datasets([forest, grassland])
 
 
